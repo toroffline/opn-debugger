@@ -249,7 +249,7 @@ const defaultItemValue: InfoRecordModel = {
   tierPriceList: [],
 };
 
-export const InfoRecord = () => {
+export const InfoRecord = (props: any) => {
   const [items, setItems] = useState<InfoRecordModel[]>([{ ...defaultItemValue }]);
   const [options, setOptions] = useState(defaultOptions);
   const [resultStr, setResultStr] = useState<string>("");
