@@ -12,7 +12,7 @@ export function App() {
   return (
     <>
 	<Router>
-		<InfoRecord path="/info-record" />  
+		<InfoRecord path="" />  
 	</Router>
     </>
   )

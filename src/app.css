@@ -60,7 +60,7 @@
 }
 
 .working-space button {
-	width: 100%
+  width: 100%;
 }
 
 .working-space .result {
@@ -101,6 +101,7 @@
 }
 
 .form-half-input-dropdown select {
+  color: black;
   border-top-right-radius: 3px;
   border-bottom-right-radius: 3px;
   border: 1px solid grey;
