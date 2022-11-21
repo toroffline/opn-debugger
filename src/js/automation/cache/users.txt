@@ -1,0 +1,1 @@
+[{"companyShortName":"eiei","username":"rp.req@mailinator.com","password":"Password1"},{"companyShortName":"eiei","username":"rp.purchaser@mailinator.com","password":"Password1"},{"companyShortName":"eiei","username":"rp.approver@mailinator.com","password":"Password1"}]
