@@ -4,6 +4,7 @@ import fs from "fs";
 
 let browser;
 let page;
+let env;
 
 async function click(selector) {
   await page.waitForSelector(selector);
@@ -16,14 +17,15 @@ async function input(value, selector) {
   await page.type(selector, value);
 }
 
-async function openOpnWeb() {
+async function openOpnWeb(envUrl) {
   browser = await puppeteer.launch({
     // userDataDir: '/Users/narkkarux.tri/Library/Application Support/Google/Chrome/Default',
     headless: false,
+    defaultViewport: false,
   });
   const pages = await browser.pages();
   page = pages[0];
-  await page.goto("http://uat-portal.oneplanets.com");
+  await page.goto(`http://${envUrl}/signin`);
 }
 
 function goToSignInPage() {
@@ -36,7 +38,7 @@ function goToSignInPage() {
 }
 
 async function signIn({ companyShortName, username, password }) {
-  goToSignInPage();
+  // goToSignInPage();
   const FIELD = {
     companyShortName:
       "#bodyContainer > div.ac-body > div.access-form > div:nth-child(1) > input",
@@ -72,6 +74,29 @@ function getPadding(padding, str) {
 
 function formatTable({ companyShortName, username, password }) {
   return `${companyShortName}\t|${getPadding(40, username)}|\t${password}`;
+}
+
+async function askEnv() {
+  const ENV = {
+    uat: {
+      url: "uat-portal.oneplanets.com",
+    },
+    beta: {
+      url: "beta-portal.oneplanets.com",
+    },
+    local: {
+      url: "localhost:3000",
+    },
+  };
+
+  const choice = {
+    type: "rawlist",
+    name: "choice",
+    message: "Enter user to sign in: ",
+    choices: Object.keys(ENV).map((env) => ({ name: env, value: ENV[env].url })),
+  };
+
+  return await inquirer.prompt(choice).then(async ({ choice }) => choice);
 }
 
 async function askSignInAs() {
@@ -169,10 +194,11 @@ async function askSignInAs() {
 async function run() {
   let manageUser = true;
   while (manageUser) {
+    const envUrl = await askEnv();
     const signInInfo = await askSignInAs();
     if (signInInfo) {
       manageUser = false;
-      await openOpnWeb();
+      await openOpnWeb(envUrl);
       signIn(signInInfo);
     }
   }
