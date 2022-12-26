@@ -4,7 +4,27 @@ import fs from "fs";
 
 let browser;
 let page;
-let env;
+let envUrl;
+
+const ENV = {
+  uat: {
+    url: "uat-portal.oneplanets.com",
+  },
+  beta: {
+    url: "beta-portal.oneplanets.com",
+  },
+  local: {
+    url: "localhost:3000",
+  },
+};
+
+const cache = {
+  path: "/Users/narkkarux.tri/Nui debug/opn/opn-debugger/src/js/automation/cache",
+  fileName: {
+    savedUsers: "users.txt",
+    latestUserLoggedIn: "latestUser.txt",
+  },
+};
 
 async function click(selector) {
   await page.waitForSelector(selector);
@@ -20,6 +40,7 @@ async function input(value, selector) {
 async function openOpnWeb(envUrl) {
   browser = await puppeteer.launch({
     // userDataDir: '/Users/narkkarux.tri/Library/Application Support/Google/Chrome/Default',
+    args: ["--start-fullscreen"],
     headless: false,
     defaultViewport: false,
   });
@@ -38,7 +59,6 @@ function goToSignInPage() {
 }
 
 async function signIn({ companyShortName, username, password }) {
-  // goToSignInPage();
   const FIELD = {
     companyShortName:
       "#bodyContainer > div.ac-body > div.access-form > div:nth-child(1) > input",
@@ -77,47 +97,61 @@ function formatTable({ companyShortName, username, password }) {
 }
 
 async function askEnv() {
-  const ENV = {
-    uat: {
-      url: "uat-portal.oneplanets.com",
-    },
-    beta: {
-      url: "beta-portal.oneplanets.com",
-    },
-    local: {
-      url: "localhost:3000",
-    },
-  };
-
   const choice = {
     type: "rawlist",
     name: "choice",
     message: "Enter user to sign in: ",
-    choices: Object.keys(ENV).map((env) => ({ name: env, value: ENV[env].url })),
+    choices: Object.keys(ENV).map((env) => ({
+      name: env,
+      value: env,
+    })),
   };
 
   return await inquirer.prompt(choice).then(async ({ choice }) => choice);
 }
 
+function findLatestUserLoggedIn() {
+  const path = cache.path;
+  const fileName = cache.fileName.latestUserLoggedIn;
+  const fullPath = `${path}/${fileName}`;
+
+  if (fs.existsSync(fullPath)) {
+    return JSON.parse(fs.readFileSync(fullPath));
+  }
+
+  return null;
+}
+
 async function askSignInAs() {
-  const savedUsersFilePath =
-    "/Users/narkkarux.tri/Nui debug/opn/opn-debugger/src/js/automation/cache";
-  const savedUsersFileName = "users.txt";
-  const fullPath = `${savedUsersFilePath}/${savedUsersFileName}`;
+  const path = cache.path;
+  const fileName = cache.fileName.savedUsers;
+  const fullPath = `${path}/${fileName}`;
   let savedUsers = [];
 
   const CHOICE = { ADD_NEW: "addNew", DELETE: "delete" };
-  const choices = [];
+  let choices = [];
+
+  // find latest logged in
+  const latestUserLoggedIn = findLatestUserLoggedIn();
 
   if (fs.existsSync(fullPath)) {
     savedUsers = JSON.parse(fs.readFileSync(fullPath));
     if (savedUsers && savedUsers.length > 0) {
       console.table(savedUsers);
-      savedUsers.forEach((user, idx) => {
-        choices.push({
-          value: user,
-          name: formatTable(user),
-        });
+      savedUsers.forEach((user, _idx) => {
+        if (
+          latestUserLoggedIn &&
+          latestUserLoggedIn.companyShortName === user.companyShortName &&
+          latestUserLoggedIn.username === user.username &&
+          latestUserLoggedIn.password === user.password
+        ) {
+          choices = [{ value: user, name: formatTable(user) }, ...choices];
+        } else {
+          choices.push({
+            value: user,
+            name: formatTable(user),
+          });
+        }
       });
       choices.push({
         value: CHOICE.DELETE,
@@ -126,8 +160,8 @@ async function askSignInAs() {
     }
   } else {
     console.log("info: No saved user.");
-    if (!fs.existsSync(savedUsersFilePath)) {
-      fs.mkdirSync(savedUsersFilePath);
+    if (!fs.existsSync(path)) {
+      fs.mkdirSync(path);
     }
   }
 
@@ -180,7 +214,7 @@ async function askSignInAs() {
           },
         ])
         .then(({ deletedUsers }) => {
-          for (let user of deletedUsers) {
+          for (let _user of deletedUsers) {
             savedUsers.splice(deletedUsers, 1);
           }
           fs.writeFileSync(fullPath, JSON.stringify(savedUsers));
@@ -191,13 +225,25 @@ async function askSignInAs() {
   });
 }
 
+async function saveLatestUserLoggedIn(signInInfo, env) {
+  const path = cache.path;
+  const fileName = cache.fileName.latestUserLoggedIn;
+  const fullPath = `${path}/${fileName}`;
+  if (!fs.existsSync(path)) {
+    fs.mkdirSync(path);
+  }
+  fs.writeFileSync(fullPath, JSON.stringify({ ...signInInfo, env }));
+}
+
 async function run() {
   let manageUser = true;
   while (manageUser) {
-    const envUrl = await askEnv();
+    const env = await askEnv();
     const signInInfo = await askSignInAs();
+    saveLatestUserLoggedIn(signInInfo, env);
     if (signInInfo) {
       manageUser = false;
+      const envUrl = ENV[env].url;
       await openOpnWeb(envUrl);
       signIn(signInInfo);
     }

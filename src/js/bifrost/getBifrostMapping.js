@@ -42,15 +42,18 @@ async function getMapping() {
 }
 
 function findMapping(parsed, mappingName) {
-  const regex = /[\W_-\s]/;
-  const maps = mappingName.split(regex);
-  console.log({ maps });
+  const splitNonWordRegEx = /[\W_-\s]/;
+  const splitCase = /(?=[A-Z])/;
+  let maps = mappingName.split(splitNonWordRegEx);
+  maps = maps.map((m) => m.split(splitCase));
+  maps = maps.flat(2);
 
   return parsed.filter((p) => {
-    const sourceMaps = p.name.split(regex);
-    console.log({ sourceMaps });
+    let sourceMaps = p.name.split(splitNonWordRegEx);
+    sourceMaps = sourceMaps.map((m) => m.split(splitCase));
+    sourceMaps = sourceMaps.flat(2);
 
-    return sourceMaps.includes(maps);
+    return maps.every((s) => sourceMaps.includes(s));
   });
 }
 

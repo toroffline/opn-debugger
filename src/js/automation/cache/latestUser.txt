@@ -1,0 +1,1 @@
+{"companyShortName":"MIC","username":"app01","password":"Password1","env":"local"}
