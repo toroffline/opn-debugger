@@ -87,10 +87,14 @@ const validateFileExtension = (fileName) => {
 
 async function selectFilesToSplit(dirPath) {
   const tree = dirTree(dirPath);
-  const choices = tree.children.map((t) => ({
-    name: t.name,
-    value: t.path,
-  }));
+  const choices = [];
+  tree.children.forEach((t) => {
+    !t.children &&
+      choices.push({
+        name: t.name,
+        value: t.path,
+      });
+  });
 
   return await inquirer.prompt([
     {
@@ -159,17 +163,17 @@ function writeFile(dirPath, fileName, texts, lineCountPerFile) {
 }
 
 async function main() {
-  // let correctPath = false;
-  // let dirPath;
-  let correctPath = true;
-  let dirPath = `/Users/narkkarux.tri/Downloads/SAP_DATA`;
+  let correctPath = false;
+  let dirPath;
+  // let correctPath = true;
+  // let dirPath = `/Users/narkkarux.tri/Downloads/SAP_DATA`;
 
   while (!correctPath) {
     dirPath = untildify((await askDir()).dirPath);
     correctPath = isExistPath(dirPath);
     if (!correctPath) {
-      console.log(`FAIL : [${dirPath}] is not exsit`);
-    } else console.log(`[${dirPath}] is exist`);
+      console.log(chalk.red(`FAIL : [${dirPath}] is not exsit`));
+    } else console.log(chalk.green(`[${dirPath}] is exist`));
   }
 
   const { files } = await selectFilesToSplit(dirPath);
