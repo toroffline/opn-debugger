@@ -10,12 +10,23 @@
     "deploy": "gh-pages -d dist"
   },
   "dependencies": {
+    "chalk": "^5.1.2",
+    "inquirer": "^9.1.4",
     "preact": "^10.10.6",
-    "preact-router": "^4.1.0"
+    "preact-router": "^4.1.0",
+    "prettier": "^2.7.1",
+    "puppeteer": "^19.2.2",
+    "inquirer-select-directory": "^1.2.0",
+    "untildify": "^4.0.0",
+    "directory-tree": "^3.2.2",
+    "inquirer-fuzzy-path": "^2.3.0",
+    "chalk": "^5.0.1",
+    "clear": "^0.1.0",
+    "figlet": "^1.5.2"
   },
   "devDependencies": {
-    "gh-pages": "^4.0.0",
     "@preact/preset-vite": "^2.3.0",
+    "gh-pages": "^4.0.0",
     "typescript": "^4.6.4",
     "vite": "^3.1.0"
   }
