@@ -6,6 +6,7 @@ import untildify from "untildify";
 import clear from "clear";
 import chalk from "chalk";
 import figlet from "figlet";
+import dirTree from "directory-tree";
 
 inquirer.registerPrompt("directory", inquirerSelectDir);
 inquirer.registerPrompt("fuzzypath", inquirerFuzzyPath);
@@ -43,7 +44,7 @@ const askDir = async () => {
         choices: [
           {
             value: "a",
-            name: "manual (ex: /Users/xxx/DeployFile/) or (~/workspace/oneplanet/bathFiles/)",
+            name: "manual (ex: /Users/xxx/bathFiles/) or (~/workspace/oneplanet/bathFiles/)",
           },
           {
             value: "b",
@@ -84,43 +85,23 @@ const validateFileExtension = (fileName) => {
   }
 };
 
-const selectFilesToSplit = async (dirPath, files) => {
-  const _files = files || [];
-  await inquirer
-    .prompt([
-      {
-        name: "file",
-        type: "fuzzypath",
-        message:
-          "Select file for split(To exit, search for nothing then hit ENTER)",
-        rootPath: dirPath,
-        itemType: "file",
-        excludePath: (nodePath) =>
-          nodePath.startsWith("node_modules") || nodePath.startsWith("."),
-      },
-      {
-        type: "confirm",
-        name: "selectMoreFile",
-        message: "Do you want to select more file?(just hit enter for more)",
-        default: true,
-      },
-    ])
-    .then(async ({ file, selectMoreFile }) => {
-      if (validateFileExtension(file.split("/").at(-1))) {
-        _files.push(file);
-      } else {
-        console.log(
-          "[FAILED] Wrong extension, [.jsp, .class, .properties] only"
-        );
-      }
-      if (selectMoreFile) {
-        await selectFilesToSplit(dirPath, _files);
-      }
-      return;
-    });
+async function selectFilesToSplit(dirPath) {
+  const tree = dirTree(dirPath);
+  const choices = tree.children.map((t) => ({
+    name: t.name,
+    value: t.path,
+  }));
 
-  return _files;
-};
+  return await inquirer.prompt([
+    {
+      type: "checkbox",
+      name: "files",
+      message:
+        "Select file for split(To exit, search for nothing then hit ENTER)",
+      choices: choices,
+    },
+  ]);
+}
 
 function askLineCountPerFile(defaultValue, fileName) {
   const questions = [
@@ -191,7 +172,7 @@ async function main() {
     } else console.log(`[${dirPath}] is exist`);
   }
 
-  const files = await selectFilesToSplit(dirPath);
+  const { files } = await selectFilesToSplit(dirPath);
   let _lineCountPerFile = 100;
   for (let filePath of files) {
     const rawData = readFile(filePath);
