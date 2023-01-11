@@ -1,1 +1,1 @@
-{"companyShortName":"MIC","username":"app01","password":"Password1","env":"local"}
+{"companyShortName":"DUSITXI","username":"pr_fin01","password":"Password1","env":"local"}
