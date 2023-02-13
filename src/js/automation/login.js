@@ -49,15 +49,6 @@ async function openOpnWeb(envUrl) {
   await page.goto(`http://${envUrl}/signin`);
 }
 
-function goToSignInPage() {
-  const navBar =
-    "#onePlanetContainerIndex > div.header-wrap > div > ul > li.sign-in > div > a";
-  const dd =
-    "#onePlanetContainerIndex > div.header-wrap > div > ul > li.sign-in > div > div > ul > li:nth-child(1) > a";
-  click(navBar);
-  click(dd);
-}
-
 async function signIn({ companyShortName, username, password }) {
   const FIELD = {
     companyShortName:
@@ -96,15 +87,22 @@ function formatTable({ companyShortName, username, password }) {
   return `${companyShortName}\t|${getPadding(40, username)}|\t${password}`;
 }
 
-async function askEnv() {
+async function askEnv(latestUserLoggedIn) {
+  let envList = [];
+  Object.keys(ENV).forEach((env) => {
+    const obj = { name: env, value: env };
+    if (latestUserLoggedIn && latestUserLoggedIn.env === env) {
+      envList = [obj, ...envList];
+    } else {
+      envList.push(obj);
+    }
+  });
+
   const choice = {
     type: "rawlist",
     name: "choice",
     message: "Enter user to sign in: ",
-    choices: Object.keys(ENV).map((env) => ({
-      name: env,
-      value: env,
-    })),
+    choices: envList,
   };
 
   return await inquirer.prompt(choice).then(async ({ choice }) => choice);
@@ -122,7 +120,7 @@ function findLatestUserLoggedIn() {
   return null;
 }
 
-async function askSignInAs() {
+async function askSignInAs(latestUserLoggedIn) {
   const path = cache.path;
   const fileName = cache.fileName.savedUsers;
   const fullPath = `${path}/${fileName}`;
@@ -131,22 +129,67 @@ async function askSignInAs() {
   const CHOICE = { ADD_NEW: "addNew", DELETE: "delete" };
   let choices = [];
 
-  // find latest logged in
-  const latestUserLoggedIn = findLatestUserLoggedIn();
-
   if (fs.existsSync(fullPath)) {
     savedUsers = JSON.parse(fs.readFileSync(fullPath));
     if (savedUsers && savedUsers.length > 0) {
-      console.table(savedUsers);
+      let groupCompany = [];
+
+      for (let user of savedUsers) {
+        if (!groupCompany.find((c) => c.value === user.companyShortName)) {
+          const adding = {
+            value: user.companyShortName,
+            name: user.companyShortName,
+          };
+          if (
+            latestUserLoggedIn &&
+            latestUserLoggedIn.companyShortName === user.companyShortName
+          ) {
+            groupCompany = [adding, ...groupCompany];
+          } else {
+            groupCompany.push(adding);
+          }
+        }
+      }
+
+      groupCompany = [
+        ...groupCompany,
+        {
+          name: "Add new ",
+          value: CHOICE.ADD_NEW,
+        },
+        {
+          name: "Delete ",
+          value: CHOICE.DELETE,
+        },
+      ];
+
+      const { companyShortName } = await inquirer
+        .prompt([
+          {
+            type: "rawlist",
+            name: "companyShortName",
+            message: "Select company : ",
+            choices: groupCompany,
+          },
+        ])
+        .then(async ({ companyShortName }) => {
+          return { companyShortName };
+          if (companyShortName === CHOICE.ADD) {
+          } else if (companyShortName === CHOICE.DELETE) {
+          }
+        });
+      console.log({ companyShortName });
+
       savedUsers.forEach((user, _idx) => {
         if (
           latestUserLoggedIn &&
           latestUserLoggedIn.companyShortName === user.companyShortName &&
           latestUserLoggedIn.username === user.username &&
-          latestUserLoggedIn.password === user.password
+          latestUserLoggedIn.password === user.password &&
+          user.companyShortName === companyShortName
         ) {
           choices = [{ value: user, name: formatTable(user) }, ...choices];
-        } else {
+        } else if (user.companyShortName === companyShortName) {
           choices.push({
             value: user,
             name: formatTable(user),
@@ -238,8 +281,9 @@ async function saveLatestUserLoggedIn(signInInfo, env) {
 async function run() {
   let manageUser = true;
   while (manageUser) {
-    const env = await askEnv();
-    const signInInfo = await askSignInAs();
+    const latestUserLoggedIn = findLatestUserLoggedIn();
+    const signInInfo = await askSignInAs(latestUserLoggedIn);
+    const env = await askEnv(latestUserLoggedIn);
     saveLatestUserLoggedIn(signInInfo, env);
     if (signInInfo) {
       manageUser = false;
